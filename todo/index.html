@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#4f46e5" />
+  <title>오늘 할 일 · 투두리스트</title>
+  <style>
+    :root {
+      --brand: #4f46e5;
+      --brand-soft: #eef2ff;
+      --brand-dark: #4338ca;
+      --bg: #f5f6fb;
+      --card: #ffffff;
+      --text: #1f2430;
+      --muted: #7b8194;
+      --line: #eceef4;
+      --done: #22c55e;
+      --danger: #ef4444;
+      --shadow: 0 8px 30px rgba(31, 36, 48, 0.08);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      font-family: "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", -apple-system,
+        BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right)
+        env(safe-area-inset-bottom) env(safe-area-inset-left);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 20px 16px 120px;
+    }
+
+    /* ===== 헤더 ===== */
+    header { text-align: center; margin: 8px 0 18px; }
+    header h1 {
+      font-size: 22px;
+      margin: 0 0 4px;
+      letter-spacing: -0.5px;
+    }
+    header .subtitle { color: var(--muted); font-size: 14px; margin: 0; }
+
+    /* ===== 날짜 이동 ===== */
+    .datebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: var(--card);
+      border-radius: 16px;
+      padding: 10px 12px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .datebar button {
+      border: none;
+      background: var(--brand-soft);
+      color: var(--brand-dark);
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      font-size: 20px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.08s ease, background 0.15s ease;
+    }
+    .datebar button:active { transform: scale(0.92); }
+    .datebar .date-center { text-align: center; line-height: 1.3; }
+    .datebar .date-main { font-size: 17px; font-weight: 700; }
+    .datebar .date-sub { font-size: 12px; color: var(--muted); }
+    .datebar .today-badge {
+      display: inline-block;
+      font-size: 11px;
+      background: var(--brand);
+      color: #fff;
+      border-radius: 999px;
+      padding: 2px 8px;
+      margin-top: 3px;
+    }
+
+    /* ===== 달성률 카드 ===== */
+    .summary {
+      background: linear-gradient(135deg, var(--brand) 0%, #6366f1 100%);
+      color: #fff;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+    .summary .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 12px;
+    }
+    .summary .percent { font-size: 40px; font-weight: 800; line-height: 1; }
+    .summary .count { font-size: 14px; opacity: 0.92; text-align: right; }
+    .bar {
+      height: 12px;
+      background: rgba(255, 255, 255, 0.28);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar > span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: #fff;
+      border-radius: 999px;
+      transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .summary .evaluation {
+      margin-top: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.16);
+      padding: 10px 12px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    /* ===== 입력창 ===== */
+    .add-form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .add-form input {
+      flex: 1;
+      border: 2px solid var(--line);
+      background: var(--card);
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.15s ease;
+      min-width: 0;
+    }
+    .add-form input:focus { border-color: var(--brand); }
+    .add-form button {
+      border: none;
+      background: var(--brand);
+      color: #fff;
+      border-radius: 14px;
+      padding: 0 20px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s ease, transform 0.08s ease;
+    }
+    .add-form button:active { transform: scale(0.95); }
+    .add-form button:hover { background: var(--brand-dark); }
+
+    /* ===== 할 일 목록 ===== */
+    ul.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--card);
+      border-radius: 16px;
+      padding: 14px 14px;
+      box-shadow: var(--shadow);
+      animation: pop 0.2s ease;
+    }
+    @keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    .check {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      border: 2px solid #cbd0dd;
+      flex-shrink: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      background: #fff;
+    }
+    .check.checked {
+      background: var(--done);
+      border-color: var(--done);
+    }
+    .check svg { width: 16px; height: 16px; stroke: #fff; stroke-width: 3; fill: none; opacity: 0; transition: opacity 0.15s ease; }
+    .check.checked svg { opacity: 1; }
+
+    .item .title {
+      flex: 1;
+      font-size: 16px;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+    .item.done .title { color: var(--muted); text-decoration: line-through; }
+
+    .item .del {
+      border: none;
+      background: transparent;
+      color: #c3c8d4;
+      font-size: 22px;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      cursor: pointer;
+      flex-shrink: 0;
+      line-height: 1;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+    .item .del:hover { color: var(--danger); background: #fef2f2; }
+
+    /* ===== 빈 목록 안내 ===== */
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 40px 20px;
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+    .empty .big { font-size: 40px; margin-bottom: 10px; }
+
+    /* ===== 저장 상태 표시 ===== */
+    .save-status {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 22px;
+    }
+    .save-status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+    .dot.cloud { background: var(--done); }
+    .dot.local { background: #f59e0b; }
+
+    @media (min-width: 600px) {
+      header h1 { font-size: 26px; }
+      .wrap { padding-top: 32px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>📋 오늘 할 일</h1>
+      <p class="subtitle">계획하고, 체크하고, 하루를 돌아봐요</p>
+    </header>
+
+    <!-- 날짜 이동 -->
+    <div class="datebar">
+      <button id="prevDay" aria-label="이전 날">‹</button>
+      <div class="date-center">
+        <div class="date-main" id="dateMain">—</div>
+        <div class="date-sub" id="dateSub"></div>
+        <div id="todayBadge"></div>
+      </div>
+      <button id="nextDay" aria-label="다음 날">›</button>
+    </div>
+
+    <!-- 달성률 요약 -->
+    <div class="summary">
+      <div class="row">
+        <div class="percent"><span id="percent">0</span>%</div>
+        <div class="count"><span id="doneCount">0</span> / <span id="totalCount">0</span> 완료</div>
+      </div>
+      <div class="bar"><span id="barFill"></span></div>
+      <div class="evaluation" id="evaluation">할 일을 등록해 볼까요?</div>
+    </div>
+
+    <!-- 입력창 -->
+    <form class="add-form" id="addForm">
+      <input type="text" id="taskInput" placeholder="할 일을 적어주세요" autocomplete="off" maxlength="120" />
+      <button type="submit">추가</button>
+    </form>
+
+    <!-- 할 일 목록 -->
+    <ul class="list" id="list"></ul>
+
+    <!-- 저장 상태 -->
+    <div class="save-status" id="saveStatus"></div>
+  </div>
+
+  <!-- Supabase 라이브러리 (클라우드 저장용) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script>
+    // ===================== 앱 로직 =====================
+    "use strict";
+
+    var currentDate = new Date();
+
+    // Supabase 연결 여부 확인
+    var supa = null;
+    var useCloud = false;
+    (function initCloud() {
+      var url = window.SUPABASE_URL, key = window.SUPABASE_ANON_KEY;
+      if (url && key && window.supabase) {
+        try {
+          supa = window.supabase.createClient(url, key);
+          useCloud = true;
+        } catch (e) {
+          useCloud = false;
+        }
+      }
+    })();
+
+    // ------- 날짜 도우미 -------
+    function dateKey(d) {
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, "0");
+      var day = String(d.getDate()).padStart(2, "0");
+      return y + "-" + m + "-" + day;
+    }
+    function isSameDay(a, b) { return dateKey(a) === dateKey(b); }
+    var WEEK = ["일", "월", "화", "수", "목", "금", "토"];
+
+    // ------- 저장소: 이 기기(localStorage) -------
+    function localGet(key) {
+      try { return JSON.parse(localStorage.getItem("todo_" + key) || "[]"); }
+      catch (e) { return []; }
+    }
+    function localSet(key, items) {
+      localStorage.setItem("todo_" + key, JSON.stringify(items));
+    }
+
+    // ------- 현재 목록 상태 -------
+    var todos = [];
+
+    async function loadTodos() {
+      var key = dateKey(currentDate);
+      if (useCloud) {
+        try {
+          var res = await supa.from("todos").select("*").eq("task_date", key).order("created_at", { ascending: true });
+          if (res.error) throw res.error;
+          todos = res.data || [];
+          return;
+        } catch (e) {
+          console.warn("클라우드 불러오기 실패, 이 기기 저장으로 대체합니다.", e);
+        }
+      }
+      todos = localGet(key);
+    }
+
+    async function addTodo(title) {
+      var key = dateKey(currentDate);
+      if (useCloud) {
+        try {
+          var res = await supa.from("todos").insert({ task_date: key, title: title, done: false }).select().single();
+          if (res.error) throw res.error;
+          todos.push(res.data);
+          return;
+        } catch (e) {
+          console.warn("클라우드 저장 실패, 이 기기 저장으로 대체합니다.", e);
+        }
+      }
+      var item = { id: "l" + Date.now() + Math.random().toString(16).slice(2), task_date: key, title: title, done: false, created_at: new Date().toISOString() };
+      todos.push(item);
+      localSet(key, todos);
+    }
+
+    // 클라우드에 저장된 항목인지 판단 (이 기기 임시 항목은 id가 "l"로 시작)
+    function isCloudItem(item) {
+      return useCloud && !String(item.id).startsWith("l");
+    }
+
+    async function toggleTodo(item) {
+      item.done = !item.done;
+      if (isCloudItem(item)) {
+        try {
+          var res = await supa.from("todos").update({ done: item.done }).eq("id", item.id);
+          if (res.error) throw res.error;
+          return;
+        } catch (e) {
+          console.warn("클라우드 수정 실패, 이 기기 저장으로 대체합니다.", e);
+        }
+      }
+      localSet(dateKey(currentDate), todos);
+    }
+
+    async function deleteTodo(item) {
+      todos = todos.filter(function (t) { return t.id !== item.id; });
+      if (isCloudItem(item)) {
+        try {
+          var res = await supa.from("todos").delete().eq("id", item.id);
+          if (res.error) throw res.error;
+          return;
+        } catch (e) {
+          console.warn("클라우드 삭제 실패, 이 기기 저장으로 대체합니다.", e);
+        }
+      }
+      localSet(dateKey(currentDate), todos);
+    }
+
+    // ------- 평가 문구 -------
+    function evaluate(total, done) {
+      if (total === 0) return "할 일을 등록해 볼까요?";
+      var p = Math.round((done / total) * 100);
+      if (p === 100) return "🎉 완벽해요! 오늘 계획을 모두 해냈어요!";
+      if (p >= 80) return "👏 훌륭해요! 거의 다 해냈어요.";
+      if (p >= 60) return "👍 잘했어요! 좋은 하루였어요.";
+      if (p >= 40) return "💪 절반은 했어요. 조금만 더!";
+      if (p >= 1) return "🌱 시작이 반이에요. 내일은 더 잘할 수 있어요.";
+      return "😊 오늘은 쉬어가도 괜찮아요. 내일 다시 도전해요.";
+    }
+
+    // ------- 화면 그리기 -------
+    function render() {
+      // 날짜 표시
+      document.getElementById("dateMain").textContent =
+        (currentDate.getMonth() + 1) + "월 " + currentDate.getDate() + "일 (" + WEEK[currentDate.getDay()] + ")";
+      document.getElementById("dateSub").textContent = currentDate.getFullYear() + "년";
+      var badge = document.getElementById("todayBadge");
+      badge.innerHTML = isSameDay(currentDate, new Date()) ? '<span class="today-badge">오늘</span>' : "";
+
+      // 달성률
+      var total = todos.length;
+      var done = todos.filter(function (t) { return t.done; }).length;
+      var percent = total === 0 ? 0 : Math.round((done / total) * 100);
+      document.getElementById("percent").textContent = percent;
+      document.getElementById("doneCount").textContent = done;
+      document.getElementById("totalCount").textContent = total;
+      document.getElementById("barFill").style.width = percent + "%";
+      document.getElementById("evaluation").textContent = evaluate(total, done);
+
+      // 목록
+      var list = document.getElementById("list");
+      list.innerHTML = "";
+      if (total === 0) {
+        var empty = document.createElement("div");
+        empty.className = "empty";
+        empty.innerHTML = '<div class="big">📝</div><div>아직 등록한 할 일이 없어요.<br>위에 오늘 할 일을 적어보세요!</div>';
+        list.appendChild(empty);
+      } else {
+        todos.forEach(function (item) {
+          var li = document.createElement("li");
+          li.className = "item" + (item.done ? " done" : "");
+
+          var check = document.createElement("div");
+          check.className = "check" + (item.done ? " checked" : "");
+          check.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="4,12 10,18 20,6"></polyline></svg>';
+          check.onclick = async function () {
+            await toggleTodo(item);
+            render();
+          };
+
+          var title = document.createElement("div");
+          title.className = "title";
+          title.textContent = item.title;
+
+          var del = document.createElement("button");
+          del.className = "del";
+          del.setAttribute("aria-label", "삭제");
+          del.innerHTML = "×";
+          del.onclick = async function () {
+            await deleteTodo(item);
+            render();
+          };
+
+          li.appendChild(check);
+          li.appendChild(title);
+          li.appendChild(del);
+          list.appendChild(li);
+        });
+      }
+
+      // 저장 상태
+      var status = document.getElementById("saveStatus");
+      if (useCloud) {
+        status.innerHTML = '<span class="dot cloud"></span>클라우드에 저장되고 있어요 (어느 기기에서나 같은 목록이 보여요)';
+      } else {
+        status.innerHTML = '<span class="dot local"></span>이 기기에 저장되고 있어요 (Supabase 연결 전)';
+      }
+    }
+
+    // ------- 이벤트 -------
+    document.getElementById("addForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var input = document.getElementById("taskInput");
+      var val = input.value.trim();
+      if (!val) return;
+      await addTodo(val);
+      input.value = "";
+      input.focus();
+      render();
+    });
+
+    document.getElementById("prevDay").addEventListener("click", async function () {
+      currentDate.setDate(currentDate.getDate() - 1);
+      await loadTodos();
+      render();
+    });
+    document.getElementById("nextDay").addEventListener("click", async function () {
+      currentDate.setDate(currentDate.getDate() + 1);
+      await loadTodos();
+      render();
+    });
+
+    // ------- 시작 -------
+    (async function start() {
+      await loadTodos();
+      render();
+    })();
+  </script>
+</body>
+</html>

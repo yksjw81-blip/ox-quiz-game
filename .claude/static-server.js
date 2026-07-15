@@ -18,7 +18,13 @@ const mime = {
 http.createServer((req, res) => {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   if (urlPath === '/') urlPath = '/ox_퀴즈게임.html';
-  const filePath = path.join(root, urlPath);
+  let filePath = path.join(root, urlPath);
+  // 폴더로 끝나면 그 안의 index.html을 찾는다 (예: /todo/ -> /todo/index.html)
+  try {
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+      filePath = path.join(filePath, 'index.html');
+    }
+  } catch (e) {}
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
