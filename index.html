@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>O, X 퀴즈</title>
+<style>
+  :root{
+    --bg1:#1e1b4b;
+    --bg2:#4c1d95;
+    --accent:#facc15;
+    --o-color:#22c55e;
+    --x-color:#ef4444;
+    --card:#ffffff;
+    --text:#1f2937;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;
+    padding:0;
+    height:100%;
+    font-family:"Malgun Gothic","Apple SD Gothic Neo","Segoe UI",sans-serif;
+  }
+  body{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    background-size:200% 200%;
+    animation:bgshift 12s ease infinite;
+    padding:16px;
+  }
+  @keyframes bgshift{
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+  }
+  .app{
+    width:100%;
+    max-width:480px;
+  }
+  .card{
+    background:var(--card);
+    border-radius:24px;
+    padding:32px 28px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.35);
+    position:relative;
+    overflow:hidden;
+    animation:pop-in .35s ease;
+  }
+  @keyframes pop-in{
+    from{opacity:0; transform:translateY(16px) scale(.97);}
+    to{opacity:1; transform:translateY(0) scale(1);}
+  }
+
+  /* ---------- 시작 화면 ---------- */
+  #start-screen h1{
+    text-align:center;
+    font-size:2.2rem;
+    margin:0 0 8px;
+    color:var(--text);
+  }
+  #start-screen .subtitle{
+    text-align:center;
+    color:#6b7280;
+    margin-bottom:28px;
+    font-size:.95rem;
+  }
+  .mark-preview{
+    display:flex;
+    justify-content:center;
+    gap:24px;
+    margin-bottom:28px;
+  }
+  .mark-preview span{
+    font-size:3rem;
+    font-weight:900;
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .mark-preview .o{color:var(--o-color); border:5px solid var(--o-color);}
+  .mark-preview .x{color:var(--x-color); border:5px solid var(--x-color);}
+
+  button.primary{
+    width:100%;
+    padding:16px;
+    border:none;
+    border-radius:14px;
+    background:var(--accent);
+    color:#1f2937;
+    font-size:1.1rem;
+    font-weight:800;
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
+    box-shadow:0 6px 0 #b45309;
+  }
+  button.primary:active{
+    transform:translateY(4px);
+    box-shadow:0 2px 0 #b45309;
+  }
+
+  /* ---------- 퀴즈 화면 ---------- */
+  #quiz-screen{display:none;}
+  .top-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+    font-weight:700;
+    color:var(--text);
+    font-size:.9rem;
+  }
+  .progress-bar-outer{
+    width:100%;
+    height:8px;
+    background:#e5e7eb;
+    border-radius:999px;
+    overflow:hidden;
+    margin-bottom:20px;
+  }
+  .progress-bar-inner{
+    height:100%;
+    background:linear-gradient(90deg,#6366f1,#a855f7);
+    width:0%;
+    transition:width .3s ease;
+  }
+  .timer-outer{
+    width:100%;
+    height:10px;
+    background:#e5e7eb;
+    border-radius:999px;
+    overflow:hidden;
+    margin-bottom:22px;
+  }
+  .timer-inner{
+    height:100%;
+    background:var(--accent);
+    width:100%;
+    transition:width 1s linear, background-color .3s ease;
+  }
+  .question-box{
+    min-height:110px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    font-size:1.25rem;
+    font-weight:700;
+    color:var(--text);
+    line-height:1.5;
+    margin-bottom:26px;
+    padding:0 4px;
+  }
+  .choices{
+    display:flex;
+    gap:16px;
+  }
+  .choice-btn{
+    flex:1;
+    aspect-ratio:1/1;
+    border-radius:20px;
+    border:none;
+    font-size:3rem;
+    font-weight:900;
+    cursor:pointer;
+    color:#fff;
+    transition:transform .1s ease, filter .1s ease;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .choice-btn:active{transform:scale(.94);}
+  .choice-btn.o-btn{background:var(--o-color);}
+  .choice-btn.x-btn{background:var(--x-color);}
+  .choice-btn:disabled{cursor:default;}
+  .choice-btn.dim{filter:grayscale(.6) brightness(.85);}
+  .choice-btn.correct-flash{
+    animation:flash-good .5s ease;
+  }
+  .choice-btn.wrong-flash{
+    animation:flash-bad .5s ease;
+  }
+  @keyframes flash-good{
+    0%{box-shadow:0 0 0 0 rgba(34,197,94,.7);}
+    100%{box-shadow:0 0 0 18px rgba(34,197,94,0);}
+  }
+  @keyframes flash-bad{
+    0%{transform:translateX(0);}
+    20%{transform:translateX(-10px);}
+    40%{transform:translateX(10px);}
+    60%{transform:translateX(-6px);}
+    80%{transform:translateX(6px);}
+    100%{transform:translateX(0);}
+  }
+  .feedback{
+    margin-top:18px;
+    text-align:center;
+    font-weight:700;
+    min-height:24px;
+    font-size:1rem;
+  }
+  .feedback.good{color:var(--o-color);}
+  .feedback.bad{color:var(--x-color);}
+
+  /* ---------- 결과 화면 ---------- */
+  #result-screen{display:none; text-align:center;}
+  #result-screen h2{
+    font-size:1.6rem;
+    color:var(--text);
+    margin-bottom:6px;
+  }
+  .score-big{
+    font-size:3.4rem;
+    font-weight:900;
+    background:linear-gradient(135deg,#6366f1,#a855f7);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    margin:12px 0;
+  }
+  .grade-msg{
+    color:#6b7280;
+    margin-bottom:24px;
+    font-size:.95rem;
+  }
+  .btn-row{
+    display:flex;
+    gap:12px;
+  }
+  .btn-row button{
+    flex:1;
+  }
+  button.secondary{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:14px;
+    background:#e5e7eb;
+    color:var(--text);
+    font-size:1rem;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .footer-note{
+    text-align:center;
+    color:rgba(255,255,255,0.6);
+    font-size:.75rem;
+    margin-top:14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="card" id="start-screen">
+    <h1>O, X 퀴즈</h1>
+    <p class="subtitle">제한 시간 안에 정답을 맞혀보세요!</p>
+    <div class="mark-preview">
+      <span class="o">O</span>
+      <span class="x">X</span>
+    </div>
+    <button class="primary" id="start-btn">퀴즈 시작하기</button>
+  </div>
+
+  <div class="card" id="quiz-screen">
+    <div class="top-row">
+      <span id="progress-label">문제 1 / 10</span>
+      <span id="score-label">점수 0</span>
+    </div>
+    <div class="progress-bar-outer">
+      <div class="progress-bar-inner" id="progress-bar"></div>
+    </div>
+    <div class="timer-outer">
+      <div class="timer-inner" id="timer-bar"></div>
+    </div>
+    <div class="question-box" id="question-text">문제를 불러오는 중...</div>
+    <div class="choices">
+      <button class="choice-btn o-btn" id="btn-o">O</button>
+      <button class="choice-btn x-btn" id="btn-x">X</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <div class="card" id="result-screen">
+    <h2>퀴즈 종료!</h2>
+    <div class="score-big" id="final-score">0 / 10</div>
+    <div class="grade-msg" id="grade-msg"></div>
+    <div class="btn-row">
+      <button class="secondary" id="retry-btn">다시 도전</button>
+    </div>
+  </div>
+
+  <div class="footer-note">키보드 O 키 또는 X 키로도 답할 수 있어요</div>
+</div>
+
+<script>
+(function(){
+  const QUESTIONS = [
+    { q: "대한민국의 수도는 서울이다.", a: true },
+    { q: "지구는 태양 주위를 돈다.", a: true },
+    { q: "1년은 366일이다.", a: false },
+    { q: "물은 100도(°C)에서 끓는다.", a: true },
+    { q: "사람의 심장은 두 개다.", a: false },
+    { q: "태평양은 세계에서 가장 큰 바다이다.", a: true },
+    { q: "거미는 곤충이다.", a: false },
+    { q: "한글은 세종대왕이 창제했다.", a: true },
+    { q: "1 + 1 = 3이다.", a: false },
+    { q: "에베레스트산은 세계에서 가장 높은 산이다.", a: true },
+    { q: "개미는 척추동물이다.", a: false },
+    { q: "빛의 속도는 소리의 속도보다 빠르다.", a: true },
+    { q: "대한민국의 국화(國花)는 무궁화이다.", a: true },
+    { q: "달은 스스로 빛을 낸다.", a: false },
+    { q: "인간의 뼈는 나이가 들수록 개수가 늘어난다.", a: false },
+    { q: "축구 경기는 한 팀당 11명이 뛴다.", a: true },
+    { q: "북극에는 펭귄이 산다.", a: false },
+    { q: "피라미드는 이집트에 있다.", a: true },
+    { q: "일주일은 7일이다.", a: true },
+    { q: "고래는 어류(물고기)이다.", a: false }
+  ];
+
+  const TOTAL_QUESTIONS = 10;
+  const TIME_LIMIT = 10; // seconds per question
+
+  const startScreen = document.getElementById('start-screen');
+  const quizScreen = document.getElementById('quiz-screen');
+  const resultScreen = document.getElementById('result-screen');
+
+  const startBtn = document.getElementById('start-btn');
+  const retryBtn = document.getElementById('retry-btn');
+  const btnO = document.getElementById('btn-o');
+  const btnX = document.getElementById('btn-x');
+
+  const progressLabel = document.getElementById('progress-label');
+  const scoreLabel = document.getElementById('score-label');
+  const progressBar = document.getElementById('progress-bar');
+  const timerBar = document.getElementById('timer-bar');
+  const questionText = document.getElementById('question-text');
+  const feedback = document.getElementById('feedback');
+  const finalScore = document.getElementById('final-score');
+  const gradeMsg = document.getElementById('grade-msg');
+
+  let quizSet = [];
+  let currentIndex = 0;
+  let score = 0;
+  let timeLeft = TIME_LIMIT;
+  let timerId = null;
+  let answered = false;
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function startQuiz(){
+    quizSet = shuffle(QUESTIONS).slice(0, TOTAL_QUESTIONS);
+    currentIndex = 0;
+    score = 0;
+    startScreen.style.display = 'none';
+    resultScreen.style.display = 'none';
+    quizScreen.style.display = 'block';
+    showQuestion();
+  }
+
+  function showQuestion(){
+    answered = false;
+    feedback.textContent = '';
+    feedback.className = 'feedback';
+    btnO.disabled = false;
+    btnX.disabled = false;
+    btnO.classList.remove('dim','correct-flash','wrong-flash');
+    btnX.classList.remove('dim','correct-flash','wrong-flash');
+
+    const q = quizSet[currentIndex];
+    questionText.textContent = q.q;
+    progressLabel.textContent = `문제 ${currentIndex + 1} / ${quizSet.length}`;
+    scoreLabel.textContent = `점수 ${score}`;
+    progressBar.style.width = `${(currentIndex / quizSet.length) * 100}%`;
+
+    startTimer();
+  }
+
+  function startTimer(){
+    timeLeft = TIME_LIMIT;
+    updateTimerBar();
+    clearInterval(timerId);
+    timerId = setInterval(() => {
+      timeLeft -= 1;
+      updateTimerBar();
+      if(timeLeft <= 0){
+        clearInterval(timerId);
+        if(!answered) handleAnswer(null);
+      }
+    }, 1000);
+  }
+
+  function updateTimerBar(){
+    const pct = Math.max(0, (timeLeft / TIME_LIMIT) * 100);
+    timerBar.style.width = pct + '%';
+    if(pct <= 25){
+      timerBar.style.backgroundColor = 'var(--x-color)';
+    } else if(pct <= 55){
+      timerBar.style.backgroundColor = '#f97316';
+    } else {
+      timerBar.style.backgroundColor = 'var(--accent)';
+    }
+  }
+
+  function handleAnswer(userChoice){
+    if(answered) return;
+    answered = true;
+    clearInterval(timerId);
+
+    const correctAnswer = quizSet[currentIndex].a;
+    const isCorrect = userChoice === correctAnswer;
+
+    btnO.disabled = true;
+    btnX.disabled = true;
+
+    const correctBtn = correctAnswer ? btnO : btnX;
+    const wrongBtn = correctAnswer ? btnX : btnO;
+
+    if(userChoice === null){
+      feedback.textContent = `시간 초과! 정답은 ${correctAnswer ? 'O' : 'X'} 였어요.`;
+      feedback.classList.add('bad');
+      correctBtn.classList.add('correct-flash');
+      wrongBtn.classList.add('dim');
+    } else if(isCorrect){
+      score += 1;
+      feedback.textContent = '정답입니다! 🎉';
+      feedback.classList.add('good');
+      correctBtn.classList.add('correct-flash');
+      wrongBtn.classList.add('dim');
+    } else {
+      feedback.textContent = `오답! 정답은 ${correctAnswer ? 'O' : 'X'} 였어요.`;
+      feedback.classList.add('bad');
+      correctBtn.classList.add('correct-flash');
+      wrongBtn.classList.add('wrong-flash');
+    }
+
+    scoreLabel.textContent = `점수 ${score}`;
+
+    setTimeout(() => {
+      currentIndex += 1;
+      if(currentIndex >= quizSet.length){
+        finishQuiz();
+      } else {
+        showQuestion();
+      }
+    }, 1200);
+  }
+
+  function finishQuiz(){
+    progressBar.style.width = '100%';
+    quizScreen.style.display = 'none';
+    resultScreen.style.display = 'block';
+    finalScore.textContent = `${score} / ${quizSet.length}`;
+
+    const ratio = score / quizSet.length;
+    let msg;
+    if(ratio === 1) msg = '완벽해요! 만점입니다! 🏆';
+    else if(ratio >= 0.8) msg = '훌륭해요! 거의 다 맞혔네요! 👏';
+    else if(ratio >= 0.5) msg = '잘했어요! 조금만 더 힘내봐요! 💪';
+    else msg = '다시 도전해서 실력을 키워보세요! 🔥';
+    gradeMsg.textContent = msg;
+  }
+
+  btnO.addEventListener('click', () => handleAnswer(true));
+  btnX.addEventListener('click', () => handleAnswer(false));
+  startBtn.addEventListener('click', startQuiz);
+  retryBtn.addEventListener('click', startQuiz);
+
+  document.addEventListener('keydown', (e) => {
+    if(quizScreen.style.display !== 'block') return;
+    const key = e.key.toLowerCase();
+    if(key === 'o') handleAnswer(true);
+    if(key === 'x') handleAnswer(false);
+  });
+})();
+</script>
+
+</body>
+</html>
