@@ -62,22 +62,6 @@
       border-radius: 999px; padding: 2px 8px; margin-top: 3px;
     }
 
-    /* ===== 달성률 카드 ===== */
-    .summary {
-      background: linear-gradient(135deg, var(--brand) 0%, #6366f1 100%); color: #fff;
-      border-radius: 20px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px;
-    }
-    .summary .row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px; }
-    .summary .percent { font-size: 40px; font-weight: 800; line-height: 1; }
-    .summary .count { font-size: 14px; opacity: 0.92; text-align: right; }
-    .bar { height: 12px; background: rgba(255, 255, 255, 0.28); border-radius: 999px; overflow: hidden; }
-    .bar > span { display: block; height: 100%; width: 0%; background: #fff; border-radius: 999px;
-      transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
-    .summary .evaluation {
-      margin-top: 14px; font-size: 15px; font-weight: 600; background: rgba(255, 255, 255, 0.16);
-      padding: 10px 12px; border-radius: 12px; text-align: center;
-    }
-
     /* ===== 입력 카드 ===== */
     .add-card { background: var(--card); border-radius: 16px; padding: 14px; box-shadow: var(--shadow); margin-bottom: 16px; }
     .add-row { display: flex; gap: 8px; }
@@ -200,7 +184,7 @@
   <div class="wrap">
     <header>
       <h1>📋 오늘 할 일</h1>
-      <p class="subtitle">계획하고, 체크하고, 하루를 돌아봐요</p>
+      <p class="subtitle">오늘 할 일을 계획하고 하나씩 체크해요</p>
     </header>
 
     <!-- 날짜 이동 -->
@@ -212,16 +196,6 @@
         <div id="todayBadge"></div>
       </div>
       <button id="nextDay" aria-label="다음 날">›</button>
-    </div>
-
-    <!-- 달성률 요약 -->
-    <div class="summary">
-      <div class="row">
-        <div class="percent"><span id="percent">0</span>%</div>
-        <div class="count"><span id="doneCount">0</span> / <span id="totalCount">0</span> 완료</div>
-      </div>
-      <div class="bar"><span id="barFill"></span></div>
-      <div class="evaluation" id="evaluation">할 일을 등록해 볼까요?</div>
     </div>
 
     <!-- 입력 카드 -->
@@ -462,18 +436,6 @@
       }
     }
 
-    // ------- 평가 문구 -------
-    function evaluate(total, done) {
-      if (total === 0) return "할 일을 등록해 볼까요?";
-      var p = Math.round((done / total) * 100);
-      if (p === 100) return "🎉 완벽해요! 오늘 계획을 모두 해냈어요!";
-      if (p >= 80) return "👏 훌륭해요! 거의 다 해냈어요.";
-      if (p >= 60) return "👍 잘했어요! 좋은 하루였어요.";
-      if (p >= 40) return "💪 절반은 했어요. 조금만 더!";
-      if (p >= 1) return "🌱 시작이 반이에요. 내일은 더 잘할 수 있어요.";
-      return "😊 오늘은 쉬어가도 괜찮아요. 내일 다시 도전해요.";
-    }
-
     // ====================================================
     //  화면 그리기
     // ====================================================
@@ -485,13 +447,6 @@
         isSameDay(currentDate, new Date()) ? '<span class="today-badge">오늘</span>' : "";
 
       var total = todos.length;
-      var done = todos.filter(function (t) { return t.done; }).length;
-      var percent = total === 0 ? 0 : Math.round((done / total) * 100);
-      document.getElementById("percent").textContent = percent;
-      document.getElementById("doneCount").textContent = done;
-      document.getElementById("totalCount").textContent = total;
-      document.getElementById("barFill").style.width = percent + "%";
-      document.getElementById("evaluation").textContent = evaluate(total, done);
 
       var list = document.getElementById("list");
       list.innerHTML = "";
