@@ -178,10 +178,79 @@
       header h1 { font-size: 26px; }
       .wrap { padding-top: 32px; }
     }
+
+    /* ===== 로그인 화면 ===== */
+    .wrap { display: none; }
+    body.logged-in .wrap { display: block; }
+    #loginScreen { display: none; }
+    body.logged-out #loginScreen {
+      display: flex; position: fixed; inset: 0; align-items: center; justify-content: center;
+      padding: 24px; background: var(--bg); z-index: 100;
+    }
+    .login-card {
+      background: var(--card); border-radius: 22px; box-shadow: var(--shadow);
+      padding: 34px 24px; width: 100%; max-width: 360px; text-align: center;
+    }
+    .login-logo { font-size: 46px; line-height: 1; }
+    .login-card h2 { margin: 10px 0 4px; font-size: 22px; }
+    .login-sub { color: var(--muted); font-size: 13px; margin: 0 0 22px; }
+    #loginForm { display: flex; flex-direction: column; gap: 10px; }
+    #loginForm input {
+      border: 2px solid var(--line); border-radius: 14px; padding: 14px 16px; font-size: 16px;
+      outline: none; transition: border-color 0.15s ease; font-family: inherit;
+    }
+    #loginForm input:focus { border-color: var(--brand); }
+    #loginBtn {
+      margin-top: 6px; border: none; background: var(--brand); color: #fff; border-radius: 14px;
+      padding: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.15s ease;
+    }
+    #loginBtn:hover { background: var(--brand-dark); }
+    #loginBtn:disabled { opacity: 0.6; cursor: default; }
+    .login-error { color: var(--danger); font-size: 13px; min-height: 16px; }
+
+    /* ===== 상단바(로그아웃) ===== */
+    .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .topbar .who { font-size: 13px; color: var(--muted); margin-right: auto; }
+    .topbar .who b { color: var(--brand-dark); }
+    .topbar .logout {
+      border: 1px solid var(--line); background: var(--card); color: var(--muted);
+      border-radius: 10px; padding: 6px 12px; font-size: 13px; cursor: pointer; transition: all 0.15s ease;
+    }
+    .topbar .logout:hover { color: var(--danger); border-color: #fecaca; }
+
+    /* ===== 열람자(읽기 전용) ===== */
+    .viewer-banner {
+      background: #fff7ed; color: #b45309; border: 1px solid #fed7aa; border-radius: 12px;
+      padding: 10px 14px; font-size: 13px; text-align: center; margin-bottom: 16px; display: none;
+    }
+    body.readonly .viewer-banner { display: block; }
+    body.readonly .add-card,
+    body.readonly .item .del,
+    body.readonly .ritem .rdel { display: none; }
+    body.readonly .check { pointer-events: none; opacity: 0.85; }
   </style>
 </head>
 <body>
+  <!-- 로그인 화면 -->
+  <div id="loginScreen">
+    <div class="login-card">
+      <div class="login-logo">📋</div>
+      <h2>오늘 할 일</h2>
+      <p class="login-sub">허가된 사용자만 이용할 수 있어요</p>
+      <form id="loginForm">
+        <input type="text" id="loginId" placeholder="아이디" autocomplete="username" autocapitalize="none" spellcheck="false" />
+        <input type="password" id="loginPw" placeholder="비밀번호" autocomplete="current-password" />
+        <div class="login-error" id="loginError"></div>
+        <button type="submit" id="loginBtn">로그인</button>
+      </form>
+    </div>
+  </div>
+
   <div class="wrap">
+    <div class="topbar">
+      <span class="who" id="whoami"></span>
+      <button class="logout" id="logoutBtn">로그아웃</button>
+    </div>
     <header>
       <h1>📋 오늘 할 일</h1>
       <p class="subtitle">오늘 할 일을 계획하고 하나씩 체크해요</p>
@@ -197,6 +266,9 @@
       </div>
       <button id="nextDay" aria-label="다음 날">›</button>
     </div>
+
+    <!-- 열람 전용 안내 -->
+    <div class="viewer-banner">👀 열람 전용 계정이에요 — 보기만 가능합니다.</div>
 
     <!-- 입력 카드 -->
     <div class="add-card">
@@ -267,6 +339,11 @@
       }
     })();
 
+    // ------- 로그인/권한 상태 -------
+    var ID_DOMAIN = "@todo.app";
+    var currentUser = null, currentRole = null;
+    function isEditor() { return currentRole === "admin" || currentRole === "team"; }
+
     // ------- 날짜 도우미 -------
     function dateKey(d) {
       return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -317,6 +394,7 @@
 
     // 해당 날짜에 반복 할 일 인스턴스를 만들어 둔다(중복 방지)
     async function generateInstances(key) {
+      if (!isEditor()) return; // 열람자는 데이터를 만들 수 없음(읽기 전용)
       var applicable = routines.filter(function (r) { return routineAppliesTo(r, key); });
       if (applicable.length === 0) return;
 
@@ -463,7 +541,7 @@
           var check = document.createElement("div");
           check.className = "check" + (item.done ? " checked" : "");
           check.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="4,12 10,18 20,6"></polyline></svg>';
-          check.onclick = async function () { await toggleTodo(item); sortTodos(); render(); scheduleNotifications(); };
+          if (isEditor()) check.onclick = async function () { await toggleTodo(item); sortTodos(); render(); scheduleNotifications(); };
 
           var body = document.createElement("div");
           body.className = "body";
@@ -647,13 +725,75 @@
       document.getElementById("optDate").value = dateKey(currentDate);
     });
 
-    // ------- 시작 -------
-    (async function start() {
+    // ====================================================
+    //  로그인 / 로그아웃
+    // ====================================================
+    document.getElementById("loginForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      var id = document.getElementById("loginId").value.trim().toLowerCase();
+      var pw = document.getElementById("loginPw").value;
+      var errEl = document.getElementById("loginError");
+      var btn = document.getElementById("loginBtn");
+      errEl.textContent = "";
+      if (!id || !pw) { errEl.textContent = "아이디와 비밀번호를 입력해 주세요."; return; }
+      if (!useCloud) { errEl.textContent = "서버 연결에 문제가 있어요. 잠시 후 다시 시도해 주세요."; return; }
+      btn.disabled = true; btn.textContent = "로그인 중...";
+      try {
+        var res = await supa.auth.signInWithPassword({ email: id + ID_DOMAIN, password: pw });
+        if (res.error) throw res.error;
+        await afterLogin(res.data.user);
+      } catch (err) {
+        errEl.textContent = "아이디 또는 비밀번호가 올바르지 않아요.";
+      } finally {
+        btn.disabled = false; btn.textContent = "로그인";
+      }
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", async function () {
+      try { await supa.auth.signOut(); } catch (e) {}
+      currentUser = null; currentRole = null;
+      todos = []; routines = [];
+      clearNotifyTimers();
+      document.getElementById("loginPw").value = "";
+      document.body.classList.remove("logged-in", "readonly");
+      document.body.classList.add("logged-out");
+    });
+
+    async function afterLogin(user) {
+      currentUser = user;
+      currentRole = "viewer";
+      try {
+        var pr = await supa.from("profiles").select("role").eq("id", user.id).single();
+        if (!pr.error && pr.data) currentRole = pr.data.role;
+      } catch (e) {}
+
+      document.body.classList.remove("logged-out");
+      document.body.classList.add("logged-in");
+      document.body.classList.toggle("readonly", !isEditor());
+
+      var uname = (user.user_metadata && user.user_metadata.username) || (user.email || "").split("@")[0];
+      var roleName = currentRole === "admin" ? "관리자" : currentRole === "team" ? "팀원" : "열람자";
+      document.getElementById("whoami").innerHTML = "<b>" + uname + "</b> · " + roleName;
+
       document.getElementById("optDate").value = dateKey(currentDate);
       await loadRoutines();
       await loadTodos();
       render();
       scheduleNotifications();
+    }
+
+    // ------- 시작: 로그인 상태 확인 -------
+    (async function start() {
+      if (!useCloud) {
+        document.body.classList.add("logged-out");
+        document.getElementById("loginError").textContent = "서버 연결에 문제가 있어요. 잠시 후 다시 시도해 주세요.";
+        return;
+      }
+      try {
+        var s = await supa.auth.getSession();
+        if (s.data && s.data.session) { await afterLogin(s.data.session.user); return; }
+      } catch (e) {}
+      document.body.classList.add("logged-out");
     })();
   </script>
 </body>
